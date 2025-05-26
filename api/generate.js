@@ -8,25 +8,30 @@ export default function handler(req, res) {
 
   const { input, mode = 'standard', sessionId, sequenceNumber = 1 } = req.body;
   
-  // 실사화 강제 키워드
-  const forceRealistic = "RAW photo, 8k uhd, film grain, Fujifilm XT3, (photorealistic:1.4), (high detailed skin:1.2), professional photograph";
-  const noAnime = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, anime, cartoon, illustration, painting, sketch";
-  
   const seed = sessionId ? parseInt(sessionId) % 1000000 : Math.floor(Math.random() * 1000000);
   
-  const finalPrompt = `${forceRealistic}, ${input}, Negative prompt: ${noAnime}`;
+  const modeSettings = {
+    quick: "--v 6.1 --style raw --ar 16:9",
+    standard: "--v 6.1 --style raw --ar 16:9 --q 2",
+    cinematic: "--v 6.1 --style raw --ar 21:9 --q 2 --s 750"
+  };
   
   res.status(200).json({
     prompts: {
-      midjourney: `${finalPrompt} --seed ${seed} --v 6.1 --style raw --q 2`,
+      midjourney: `${input} --seed ${seed} ${modeSettings[mode]}`,
       kling: {
-        imageToVideo: "Realistic human movement, no animation",
-        textToVideo: input
+        imageToVideo: "Transform to realistic human movement",
+        textToVideo: input,
+        settings: { 
+          mode: mode === 'cinematic' ? 'professional' : 'standard',
+          duration: 10 
+        }
       }
     },
     continuity: {
       sessionId: sessionId || Date.now().toString(),
-      seed: seed
+      seed: seed,
+      sequence: sequenceNumber
     }
   });
 }
