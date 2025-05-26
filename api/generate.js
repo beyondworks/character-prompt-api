@@ -1,8 +1,3 @@
----
-
-## 2. GitHub `/api/generate.js` 전체 교체
-
-```javascript
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://chatgpt.com');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,30 +8,25 @@ export default function handler(req, res) {
 
   const { input, mode = 'standard', sessionId, sequenceNumber = 1 } = req.body;
   
+  // 실사화 강제 키워드
+  const forceRealistic = "RAW photo, 8k uhd, film grain, Fujifilm XT3, (photorealistic:1.4), (high detailed skin:1.2), professional photograph";
+  const noAnime = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, anime, cartoon, illustration, painting, sketch";
+  
   const seed = sessionId ? parseInt(sessionId) % 1000000 : Math.floor(Math.random() * 1000000);
   
-  const modeSettings = {
-    quick: { quality: 1, ar: "16:9", style: "raw" },
-    standard: { quality: 2, ar: "16:9", style: "raw" },
-    cinematic: { quality: 2, ar: "21:9", style: "raw", extra: "--s 750" }
-  };
-  
-  const settings = modeSettings[mode] || modeSettings.standard;
+  const finalPrompt = `${forceRealistic}, ${input}, Negative prompt: ${noAnime}`;
   
   res.status(200).json({
     prompts: {
-      midjourney: `${input} --seed ${seed} --v 6.1 --q ${settings.quality} --ar ${settings.ar} --style ${settings.style} ${settings.extra || ''}`,
+      midjourney: `${finalPrompt} --seed ${seed} --v 6.1 --style raw --q 2`,
       kling: {
-        imageToVideo: `Transform still image into dynamic ${sequenceNumber <= 2 ? 'introduction' : sequenceNumber <= 4 ? 'action' : 'conclusion'} sequence, ${mode === 'cinematic' ? 'professional' : 'standard'} mode`,
-        textToVideo: input,
-        settings: { mode: mode === 'cinematic' ? 'professional' : 'standard', duration: 10 }
+        imageToVideo: "Realistic human movement, no animation",
+        textToVideo: input
       }
     },
     continuity: {
       sessionId: sessionId || Date.now().toString(),
-      seed: seed,
-      sequence: sequenceNumber,
-      nextHint: `Continue with sequence ${sequenceNumber + 1}`
+      seed: seed
     }
   });
 }
